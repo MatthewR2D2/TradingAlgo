@@ -6,9 +6,9 @@ from pprint import pprint
 import matplotlib.pyplot as plt
 from config import FinTechConfig as ftc #Store the alpha api key here
 
-alpha_key = "AFPRIOB9PFYDM3L6"
 
-ts = TimeSeries(key=alpha_key)
+
+ts = TimeSeries(key=ftc.alpha_key)
 # Get json object with the intraday data and another with  the call's metadata
 data, meta_data = ts.get_intraday('GOOGL')
 print(data)
