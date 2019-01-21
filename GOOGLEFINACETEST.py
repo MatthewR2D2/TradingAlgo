@@ -6,6 +6,8 @@ Created on Mon Apr 23 15:44:56 2018
 """
 from pandas_datareader import data
 import matplotlib.pyplot as plt
+import tkinter
+import urllib
 import pandas as pd
 
 
