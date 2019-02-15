@@ -17,6 +17,18 @@ def vwap(data):
     print("Finished VWAP")
     return data
 
+def setUpData(data):
+    # add vwap to the dataframe and other colums
+    data["TP"] = ""
+    data["TPV"] = ""
+    data["SumTPV"] = ""
+    data["SumVol"] = ""
+    data["VWAP"] = ""
+    columns = ["TP", "TPV", "SumTPV", "SumVol"]
+
+    return data, columns
+
+
 
 symbol = 'MSFT'
 interval = '1min'
@@ -27,17 +39,11 @@ ts = TimeSeries(key=ftc.alpha_key, output_format='pandas')
 
 data, meta_data = ts.get_intraday(symbol=symbol, interval=interval, outputsize=outputsize)
 
-# add vwap to the dataframe and other colums
-data["TP"] = ""
-data["TPV"] = ""
-data["SumTPV"] = ""
-data["SumVol"] = ""
-data["VWAP"] = ""
-columns = ["TP", "TPV", "SumTPV", "SumVol"]
+data, columns = setUpData(data)
 
 # do vwap and twap calculation
 newData = vwap(data)
-print("Drop data columns")
+print("Remove data columns")
 newData.drop(columns, inplace=True, axis=1)
 
 
