@@ -17,191 +17,97 @@ __status__ = "Dev"
 '''
 
 import os
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
+from TradingAlgo.MovingWindowAlgo import MovingWindowStrategy as MWS
 from TradingAlgoUtilities import DataExplorationUtils as DEU
 from TestingUtilities import EvaluationTools as EveT
 from TestingUtilities import BacktestingAlgo as BTA
 
 
-instrument = "WIKI/AAPL" # Quandl Code for each stock
-start = "2006-10-01"
-end = "2018-01-01"
+if __name__ == "__main__":
+    instrument = "WIKI/AAPL" # Quandl Code for each stock
+    start = "2006-10-01"
+    end = "2018-01-01"
 
-storedDataPath = "data/data.csv"
-
-
-# Check to see if the file exsist or not
-# If it does not then write it to the path for saving
-if os.path.isfile(storedDataPath):
-    # Read in from the stored data place
-    aapl = DEU.readSymbolDataFromCSV(storedDataPath)
-else:
-    # Get the data from the internet
-    aapl = DEU.getStockData(instrument, start, end)
-    DEU.writeSymbolDatatoCSV(aapl, storedDataPath)
-
-# Resample the data to monthly view
-monthlyAAPL = DEU.resampleDataTime(aapl, 'M')
+    storedDataPath = "data/data.csv"
 
 
-# Define absolut gains
-print("Absolut Gains")
-DEU.defineAbsolutGain(aapl)
+    # Check to see if the file exsist or not
+    # If it does not then write it to the path for saving
+    if os.path.isfile(storedDataPath):
+        # Read in from the stored data place
+        aapl = DEU.readSymbolDataFromCSV(storedDataPath)
+    else:
+        # Get the data from the internet
+        aapl = DEU.getStockData(instrument, start, end)
+        DEU.writeSymbolDatatoCSV(aapl, storedDataPath)
 
-'''
-Visualization of Data
-'''
-DEU.plotCloseValues(aapl)
-
-'''
-Calculate Returns
-'''
-dailyPCTChange, dailyLogReturns, bmPctChange, qPctChange = DEU.calculateReturns(aapl)
-
-'''
-Moving Windows
-'''
-DEU.movingWindows(aapl)
-
-'''
-Calculate Volatility
-'''
-# Moving historical standard deviation of the log returns
-minPeriod = 75
-DEU.calculateVolatility(minPeriod, dailyPCTChange)
-
-'''
-Trading Strategies 
-Momentum Strategy: stocks have momentum or upward or downward trends, 
-that you can detect and exploit.
-Moving average crossover, dual moving average crossover , turtle trading are examples
-'''
-
-'''
-The moving average crossover is when the price of an asset moves from one side 
-of a moving average to the other. This crossover represents a change in momentum
- and can be used as a point of making the decision to enter or exit the market.
-
-The dual moving average crossover occurs when a short-term average crosses a 
-long-term average. This signal is used to identify that momentum is shifting in
-the direction of the short-term average. 
-A buy signal is generated when the short-term average crosses the long-term 
-average and rises above it, while a sell signal is triggered by a 
-short-term average crossing long-term average and falling below it.
-
-Turtle trading is a popular trend following strategy that was initially 
-taught by Richard Dennis. The basic strategy is to buy futures on a 
-20-day high and sell on a 20-day low.
-'''
-
-'''
-Reversion Strategy
-The movement of a quantity will eventrually reverse. 
-
-mean reversion strategy
-Where stocks will return to their mean and you can take advantage of them
-once they are there
-
-Pairs Trading mean reversion
-If two stocks have a high correlation that change in the differnce in price between
-the two stocks can show a trading event
-'''
+    # Resample the data to monthly view
+    monthlyAAPL = DEU.resampleDataTime(aapl, 'M')
 
 
-'''
-Simple Trading algo
-Moving avergage crossover
-create two separate Simple Moving Averages (SMA) of a time series with 
-differing lookback periods, let’s say, 40 days and 100 days. 
-If the short moving average exceeds the long moving average then you go long,
- if the long moving average exceeds the short moving average then you exit.
- Long = buy
- short = sell
-'''
+    # Define absolut gains
+    print("Absolut Gains")
+    DEU.defineAbsolutGain(aapl)
 
-shortWndow = 40
-longWindow = 100
+    '''
+    Visualization of Data
+    '''
+    DEU.plotCloseValues(aapl)
 
-# Create the signals
-signals = pd.DataFrame(index=aapl.index)
-signals['signal'] = 0.0
+    '''
+    Calculate Returns
+    '''
+    dailyPCTChange, dailyLogReturns, bmPctChange, qPctChange = DEU.calculateReturns(aapl)
 
-# Create short simple moving avg over short window
-signals['short_mavg'] = aapl['Close'].rolling(window=shortWndow,
-                                              min_periods=1,
-                                              center=False).mean()
+    '''
+    Moving Windows
+    '''
+    DEU.movingWindows(aapl)
 
-# Create a long simple moving avg over the long window
-signals['long_mavg'] = aapl['Close'].rolling(window=longWindow,
-                                             min_periods=1,
-                                             center=False).mean()
+    '''
+    Calculate Volatility
+    '''
+    # Moving historical standard deviation of the log returns
+    minPeriod = 75
+    DEU.calculateVolatility(minPeriod, dailyPCTChange)
 
-# Create the signals
-signals['signal'][shortWndow:] =\
-    np.where(signals['short_mavg'][shortWndow:] >
-             signals['long_mavg'][shortWndow:], 1.0, 0.0)
+    '''
+    Trading Strategies 
+    Momentum Strategy: stocks have momentum or upward or downward trends, 
+    that you can detect and exploit.
+    Moving average crossover, dual moving average crossover , turtle trading are examples
+    '''
+    shortWindow = 40
+    longWindow = 100
+    movingWindowAlgo = MWS(aapl, shortWindow, longWindow)
+    signals = movingWindowAlgo.movingwindow()
 
+    '''
+    Backtesting the simple algo
+    '''
+    initialCapital = float(100000.0)
+    symbolText = 'AAPL'
+    portfolio = BTA.backTest(initialCapital,signals,aapl,symbolText)
 
-# Create tradding orders
-signals['positions'] = signals['signal'].diff()
+    '''
+    Evaluatioins tools
+    '''
+    EveT.sharpeRatio(portfolio)
 
-# print the signals
-print(signals)
+    '''
+    Maximum Drawdown, which is used to measure the largest single drop from peak to 
+    bottom in the value of a portfolio, 
+    so before a new peak is achieved. In other words, the score indicates the risk
+     of a portfolio chosen based on a certain strategy.
+    '''
 
-fig = plt.figure()
+    # Define a trailing 252 trading day window
+    window = 252
+    EveT.maxDailyDrawdown(aapl, window)
 
-# Add a subplot and label for y-axis
-ax1 = fig.add_subplot(111, ylabel='Price in $')
-
-# Plot the closing price
-aapl['Close'].plot(ax=ax1, color='b', lw=2.)
-
-# Plot the short and long moving averages
-signals[['short_mavg', 'long_mavg']].plot(ax=ax1, lw=2.)
-
-# Plot the buy signals
-ax1.plot(signals.loc[signals.positions == 1.0].index,
-         signals.short_mavg[signals.positions == 1.0],
-         '^', markersize=10, color='g')
-
-# Plot the sell signals
-ax1.plot(signals.loc[signals.positions == -1.0].index,
-         signals.short_mavg[signals.positions == -1.0],
-         'v', markersize=10, color='r')
-
-# Show the plot
-#plt.show()
-
-
-
-'''
-Backtesting the simple algo
-'''
-initialCapital = float(100000.0)
-symbolText = 'AAPL'
-portfolio = BTA.backTest(initialCapital,signals,aapl,symbolText)
-
-'''
-Evaluatioins tools
-'''
-EveT.sharpeRatio(portfolio)
-
-'''
-Maximum Drawdown, which is used to measure the largest single drop from peak to 
-bottom in the value of a portfolio, 
-so before a new peak is achieved. In other words, the score indicates the risk
- of a portfolio chosen based on a certain strategy.
-'''
-
-# Define a trailing 252 trading day window
-window = 252
-EveT.maxDailyDrawdown(aapl, window)
-
-'''
-Compound Annual Growth Rate (CAGR), which provides you with a 
-constant rate of return over the time period. In other words,
- the rate tells you what you really have at the end of your investment period. 
-'''
-EveT.cagrCalculation(aapl)
+    '''
+    Compound Annual Growth Rate (CAGR), which provides you with a 
+    constant rate of return over the time period. In other words,
+     the rate tells you what you really have at the end of your investment period. 
+    '''
+    EveT.cagrCalculation(aapl)
