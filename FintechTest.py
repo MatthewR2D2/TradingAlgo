@@ -229,18 +229,10 @@ plt.show()
 Evaluatioins tools
 '''
 
-'''
-harpe ratio to get to know whether your portfolio’s returns are the result 
-of the fact that you decided to make smart investments or to take a lot of risks
-'''
-# Isolate the returns of your strategy
-returns = portfolio['returns']
+from TestingUtilities import EvaluationTools as EveT
 
-# annualized Sharpe ratio
-sharpe_ratio = np.sqrt(252) * (returns.mean() / returns.std())
+EveT.sharpeRatio(portfolio)
 
-# Print the Sharpe ratio
-print(sharpe_ratio)
 
 '''
 Maximum Drawdown, which is used to measure the largest single drop from peak to 
@@ -251,32 +243,11 @@ so before a new peak is achieved. In other words, the score indicates the risk
 
 # Define a trailing 252 trading day window
 window = 252
-
-# Calculate the max drawdown in the past window days for each day
-rolling_max = aapl['Adj. Close'].rolling(window, min_periods=1).max()
-daily_drawdown = aapl['Adj. Close']/rolling_max - 1.0
-
-# Calculate the minimum (negative) daily drawdown
-max_daily_drawdown = daily_drawdown.rolling(window, min_periods=1).min()
-
-# Plot the results
-daily_drawdown.plot()
-max_daily_drawdown.plot()
-
-# Show the plot
-plt.show()
+EveT.maxDailyDrawdown(aapl, window)
 
 '''
 Compound Annual Growth Rate (CAGR), which provides you with a 
 constant rate of return over the time period. In other words,
  the rate tells you what you really have at the end of your investment period. 
 '''
-
-# Get the number of days in `aapl`
-days = (aapl.index[-1] - aapl.index[0]).days
-
-# Calculate the CAGR
-cagr = ((((aapl['Adj. Close'][-1]) / aapl['Adj. Close'][1])) ** (365.0/days)) - 1
-
-# Print the CAGR
-print(cagr)
+EveT.cagrCalculation(aapl)
