@@ -21,6 +21,14 @@ from TradingAlgo.MovingWindowAlgo import MovingWindowStrategy as MWS
 from TradingAlgoUtilities import DataExplorationUtils as DEU
 from TestingUtilities import EvaluationTools as EveT
 from TestingUtilities import BacktestingAlgo as BTA
+from TradingAlgo.VWAP import VWAP
+
+'''
+Available Columns
+['Open' 'High' 'Low' 'Close' 'Volume' 'Ex-Dividend' 'Split Ratio'
+ 'Adj. Open' 'Adj. High' 'Adj. Low' 'Adj. Close' 'Adj. Volume'
+ 'Open-Close']
+'''
 
 
 if __name__ == "__main__":
@@ -79,6 +87,7 @@ if __name__ == "__main__":
     '''
     shortWindow = 40
     longWindow = 100
+    # Create a new object trading algo
     movingWindowAlgo = MWS(aapl, shortWindow, longWindow)
     signals = movingWindowAlgo.movingwindow()
 
@@ -111,3 +120,12 @@ if __name__ == "__main__":
      the rate tells you what you really have at the end of your investment period. 
     '''
     EveT.cagrCalculation(aapl)
+
+
+    '''
+    VWAP Example
+    '''
+    vwap = VWAP()
+    aapl, vwapAddedColumn = vwap.setUpData(aapl)
+    aapl = vwap.vwap(aapl, vwapAddedColumn, "BUY")
+    vwap.plotVWAP(aapl)
