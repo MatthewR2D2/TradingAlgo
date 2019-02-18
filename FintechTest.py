@@ -22,6 +22,7 @@ from TradingAlgoUtilities import DataExplorationUtils as DEU
 from TestingUtilities import EvaluationTools as EveT
 from TestingUtilities import BacktestingAlgo as BTA
 from TradingAlgo.VWAP import VWAP
+from TradingAlgo.TWAP import TWAP
 
 '''
 Available Columns
@@ -129,3 +130,13 @@ if __name__ == "__main__":
     aapl, vwapAddedColumn = vwap.setUpData(aapl)
     aapl = vwap.vwap(aapl, vwapAddedColumn, "BUY")
     vwap.plotVWAP(aapl)
+
+
+    '''
+    TWAP example
+    Always use after VWAP as you need to setup the dataset to have TP typical price
+    '''
+
+    twap = TWAP()
+    aapl = twap.twap(aapl)
+    twap.plotTWAP(aapl)
