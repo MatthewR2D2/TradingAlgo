@@ -17,44 +17,10 @@ __status__ = "Dev"
 '''
 
 import os
-import quandl
 import pandas as pd
 import numpy as np
-import statsmodels.api as sm
-from pandas.core import datetools
 import matplotlib.pyplot as plt
-
-
-def describeData(symbol):
-    print("Available Columns")
-    print(symbol.columns.values)
-    print("Index", symbol.index.values)
-
-    print(" Head")
-    print(symbol.head())
-    print(" Tail")
-    print(symbol.tail())
-    print(" Description")
-    print(symbol.describe())
-
-
-# Write the data to a file and then read it back in and return it
-def readSymbolDataFromCSV(dataPath):
-    return pd.read_csv(dataPath, header=0, index_col='Date', parse_dates=True)
-
-
-def writeSymbolDatatoCSV(data, dataPath):
-    data.to_csv(dataPath)
-    return readSymbolDataFromCSV(dataPath)
-
-
-# This method will get the data for a particular instrument
-def getStockData(symbol, startTime, endTime):
-    return quandl.get(symbol, start_date=startTime, end_date=endTime)
-
-
-def resampleDataTime(symbol, term):
-    return symbol.resample(term).mean()
+from TradingAlgoUtilities import DataExplorationUtils as DEU
 
 
 instrument = "WIKI/AAPL" # Quandl Code for each stock
@@ -63,114 +29,46 @@ end = "2018-01-01"
 
 storedDataPath = "data/data.csv"
 
-# This will give day values for day movement patterns not tick by tick
-# aapl = quandl.get(instrument, start_date=start, end_date=end)
-
 
 # Check to see if the file exsist or not
 # If it does not then write it to the path for saving
 if os.path.isfile(storedDataPath):
     # Read in from the stored data place
-    aapl = readSymbolDataFromCSV(storedDataPath)
+    aapl = DEU.readSymbolDataFromCSV(storedDataPath)
 else:
     # Get the data from the internet
-    aapl = getStockData(instrument, start, end)
-    writeSymbolDatatoCSV(aapl, storedDataPath)
+    aapl = DEU.getStockData(instrument, start, end)
+    DEU.writeSymbolDatatoCSV(aapl, storedDataPath)
 
 # Resample the data to monthly view
-monthlyAAPL = resampleDataTime(aapl, 'M')
+monthlyAAPL = DEU.resampleDataTime(aapl, 'M')
 
 
 # Define absolut gains
-aapl["Open-Close"] = aapl.Open - aapl.Close
-# del aapl["Open-Close"]
-describeData(aapl)
+print("Absolut Gains")
+DEU.defineAbsolutGain(aapl)
 
 '''
 Visualization of Data
 '''
-
-aapl['Close'].plot(grid=True)
-plt.title("Close Value")
-#plt.show()
+DEU.plotCloseValues(aapl)
 
 '''
 Calculate Returns
 '''
-dailyClose = aapl[['Adj. Close']]
-dailyPCTChange = dailyClose.pct_change()  # Daily returns price change
-# Clean up the data by replacing NA with 0
-dailyPCTChange.fillna(0, inplace=True)
-# Find the daily log returns
-# a proxy for the percentage change in the price
-# Get better insight into the growth of a instrument
-dailyLogReturns = np.log(dailyClose.pct_change() + 1)
-
-print("Daily PCT Change:", dailyPCTChange)
-print("Daily Log Returns", dailyLogReturns)
-
-# Get Business monthly aggrigated data
-bm = resampleDataTime(aapl, 'BM').apply(lambda x: x[-1])
-# Get quartely data
-quarter = resampleDataTime(aapl, '4M')
-# Get the monthly % change
-bmPctChange = bm.pct_change()
-qPctChange = quarter.pct_change()
-
-print("Business Month % Change")
-print(bmPctChange)
-print("Quarter % Change")
-print(qPctChange)
-
-# Plot the PCT Change
-dailyPCTChange.hist(bins=50)
-plt.title("Pct Daily Change")
-#plt.show()
-
-
-# Cumulative daily rate of return
-# Used to determine the value of an investment at regular intervals
-cumDailyReturn = (1 + dailyPCTChange).cumprod()
-print("Cumulative daily rate of return:{}".format(cumDailyReturn))
-cumDailyReturn.plot()
-plt.title("Cumulative daily rate of return")
-#plt.show()
-
-cumMonthlyReturn = resampleDataTime(cumDailyReturn, "M")
-cumMonthlyReturn.plot()
-plt.title("Cumulative monthly rate of return")
-#plt.show()
-
+dailyPCTChange, dailyLogReturns, bmPctChange, qPctChange = DEU.calculateReturns(aapl)
 
 '''
 Moving Windows
 '''
-
-adjClosePx = aapl['Adj. Close']
-movingAvg = adjClosePx.rolling(window=40).mean()
-print("Moving Average:", movingAvg)
-
-# Short moving window rolling mean
-aapl['42'] = adjClosePx.rolling(window=40).mean()
-aapl['252'] = adjClosePx.rolling(window=252).mean()
-aapl[['Adj. Close', '42', '252']].plot()
-plt.title("Short vs Long moving window rolling mean")
-#plt.show()
+DEU.movingWindows(aapl)
 
 '''
-Volatility Calculation
-Measurement of change in variance in the returns of a stock over a specific period of time
-The volatility is calculated by taking a 
-rolling window standard deviation on the percentage change in a stock. 
-Keep a close eye on the data sampling frequency 
+Calculate Volatility
 '''
-
 # Moving historical standard deviation of the log returns
 minPeriod = 75
-vol = dailyPCTChange.rolling(minPeriod).std() * np.sqrt(minPeriod)
-vol.plot()
-plt.title("Volatility")
-#plt.show()
+DEU.calculateVolatility(minPeriod, dailyPCTChange)
 
 '''
 Trading Strategies 
